@@ -8,6 +8,7 @@
 </style></head>
 <body><main class="wrap">
 <section class="panel"><h1>ثبت و ارزیابی پاسخ‌های کم‌کردن ۷</h1><p>عددها را همان‌طور که در فایل صوتی می‌شنوی با صدای بلند بگو. اولین عدد فقط نقطهٔ شروع است؛ هر عدد بعدی با «آخرین عدد ثبت‌شده منهای ۷» مقایسه می‌شود.</p><p class="muted">پیشنهاد: این صفحه را در Chrome یا Edge باز کن، اجازهٔ میکروفون بده و زبان تشخیص را فارسی قرار بده.</p></section>
+<section class="panel"><h2 style="font-size:18px;margin-top:0">پخش فایل صوتی</h2><div class="row"><label class="primary" style="display:inline-block;cursor:pointer;border-radius:10px;padding:10px 12px;background:#1f5fba;color:#fff;border:1px solid #1f5fba">انتخاب فایل صوتی<input id="audioFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" style="display:none"></label><span id="audioName" class="muted">فایلی انتخاب نشده</span></div><audio id="audioPlayer" controls preload="metadata" style="width:100%;margin-top:12px;display:none"></audio><p class="muted">فایل را همین‌جا انتخاب و پخش کن. سپس می‌توانی میکروفون را روشن کنی و هم‌زمان به صدا گوش بدهی. اگر اندروید یا Chrome باز هم پخش را متوقف کرد، محدودیت مدیریت صدا در دستگاه/مرورگر است و این روش روی همه گوشی‌ها تضمین‌شده نیست.</p></section>
 <section class="panel"><div class="row"><label>زبان تشخیص <select id="lang"><option value="fa-IR" selected>فارسی (ایران)</option><option value="en-US">English (US)</option></select></label><button class="primary" id="start">شروع میکروفون</button><button id="stop" disabled>توقف میکروفون</button><span class="pill" id="micState">میکروفون خاموش</span></div><div class="status" id="status">برای شروع، روی «شروع میکروفون» بزن.</div><p class="muted">تشخیص گفتار مرورگر ممکن است به اینترنت وابسته باشد و همیشه دقیق نیست. متن تشخیص‌داده‌شده را بررسی کن؛ می‌توانی عدد را دستی وارد یا اصلاح کنی.</p></section>
 <section class="panel"><h2 style="font-size:18px;margin-top:0">ثبت دستی</h2><div class="controls"><input id="manualNumber" inputmode="numeric" placeholder="مثلاً ۳۵۰"><button class="primary" id="addManual">ثبت عدد</button><button id="undo">حذف آخرین مورد</button><button id="reset" class="danger">شروع از نو</button></div><p class="muted">اگر تشخیص صوتی اشتباه بود، عدد صحیح را در این قسمت ثبت کن یا عدد موجود در جدول را ویرایش کن.</p></section>
 <section class="panel"><div class="stats"><div class="stat">تعداد پاسخ‌های بررسی‌شده<strong id="total">۰</strong></div><div class="stat">درست<strong class="good" id="correct">۰</strong></div><div class="stat">غلط<strong class="bad" id="wrong">۰</strong></div></div><p>درصد صحت پاسخ‌ها: <strong id="accuracy">—</strong></p></section>
@@ -16,7 +17,18 @@
 </main>
 <script>
 (()=>{
-const $=id=>document.getElementById(id);let entries=[],recognition=null,listening=false;
+
+const $=id=>document.getElementById(id);let entries=[],recognition=null,listening=false,audioObjectUrl=null;
+$('audioFile').addEventListener('change',()=>{
+ const file=$('audioFile').files && $('audioFile').files[0];
+ if(!file)return;
+ if(audioObjectUrl)URL.revokeObjectURL(audioObjectUrl);
+ audioObjectUrl=URL.createObjectURL(file);
+ const player=$('audioPlayer');player.src=audioObjectUrl;player.style.display='block';player.load();
+ $('audioName').textContent=file.name;
+ setStatus('فایل صوتی آمادهٔ پخش است. برای هم‌زمان گوش دادن و تشخیص، پخش را شروع کن و سپس میکروفون را روشن کن.');
+});
+
 const digits=s=>String(s).replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[٠-٩]/g,c=>'٠١٢٣٤٥٦٧٨٩'.indexOf(c));
 const faWords={'صفر':0,'یک':1,'یه':1,'اول':1,'دو':2,'سه':3,'چهار':4,'پنج':5,'شش':6,'شیش':6,'هفت':7,'هشت':8,'نه':9,'ده':10,'یازده':11,'دوازده':12,'سیزده':13,'چهارده':14,'پانزده':15,'شانزده':16,'هفده':17,'هجده':18,'هیجده':18,'نوزده':19,'بیست':20,'سی':30,'چهل':40,'پنجاه':50,'شصت':60,'هفتاد':70,'هشتاد':80,'نود':90,'صد':100,'یکصد':100,'دویست':200,'سیصد':300,'چهارصد':400,'پانصد':500,'ششصد':600,'هفتصد':700,'هشتصد':800,'نهصد':900,'سیصد و پنجاه':350};
 function parseNumber(raw){let s=digits(raw).replace(/[٬,،]/g,'').trim();let m=s.match(/-?\d{1,4}/);if(m){let n=Number(m[0]);if(Number.isInteger(n)&&n>=0&&n<=9999)return n;}
